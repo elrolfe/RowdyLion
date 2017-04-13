@@ -17,6 +17,8 @@ def main():
 			for y in range(10,20):
 				display.put_char(('#', Color.GOLDENROD, Color.BLACK), x, y)
 
+		display.put_text('Testing', 10, 22)
+
 		display.update()
 		clock.tick(60)
 

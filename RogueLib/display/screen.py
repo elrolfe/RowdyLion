@@ -6,7 +6,7 @@ from .font import Font
 from .color import Color
 
 class Screen():
-	def __init__(self, width = 80, height = 24, font = Font.IBMCGA_12X12):
+	def __init__(self, width = 80, height = 24, font = Font.ATI_8X14):
 		self.grid_width = width
 		self.grid_height = height
 		self.default_fg = Color.WHITE
@@ -88,10 +88,26 @@ class Screen():
 		stubs = []
 
 		for m in self.color_regex.finditer(text):
-			textStub = text[text_index:m.start()]
-			# if m.group(1) == 'b':
+			text_stub = text[text_index:m.start()]
+			stubs.append({'text': text_stub, 'fg': current_fg, 'bg': current_bg})
+
+			if m.group(1) == 'b':
+				if len(m.group(2)) == 0:
+					current_bg = self.default_bg
+				else:
+					current_bg = Color[m.group(2)]
+			else:
+				if len(m.group(2)) == 0:
+					current_fg = self.default_fg
+				else:
+					current_bg = Color[m.group(2)]
 
 			text_index = m.end()
+
+		text_stub = text[text_index:]
+		stubs.append({'text': text_stub, 'fg': current_fg, 'bg': current_bg})
+
+		return stubs
 
 
 	def put_char(self, glyph, x, y):
@@ -101,6 +117,40 @@ class Screen():
 		gy = y * self.glyph_height;
 
 		self.screen.blit(self.get_glyph(glyph), [gx, gy])
+
+	def put_text(self, text, x = 0, y = 0, width = -1, height = -1):
+		dx = 0
+		dy = 0
+
+		if width == -1:
+			width = self.grid_width - x
+
+		if height == -1:
+			height = self.grid_height - y
+
+		self.check_bounds(x, y)
+		self.check_bounds(x + width - 1, y + height - 1)
+
+		text_data = self.process_color_string(text)
+
+		for i in range(len(text_data)):
+			data = text_data[i]
+			words = data['text'].split(' ')
+			for j in range(len(words)):
+				if (dx + len(words[j]) + 0 if j == 0 else 1) > width:
+					dx = 0
+					dy += 1
+					if dy == height:
+						return
+
+				if j > 0 and dx > 0:
+					self.put_char((' ', data['fg'], data['bg']), dx + x, dy + y)
+					dx += 1
+
+				if len(words[j]) > 0:
+					for k in range(len(words[j])):
+						self.put_char((words[j][k], data['fg'], data['bg']), dx + x, dy + y)
+						dx += 1
 
 	def update(self):
 		pygame.display.flip()
