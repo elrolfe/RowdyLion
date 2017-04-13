@@ -1,10 +1,12 @@
 import pygame
 import re
-from . import font
+import os
+import sys
+from .font import Font
 from .color import Color
 
 class Screen():
-	def __init__(self, width = 80, height = 24, font = font.ATI_8X14):
+	def __init__(self, width = 80, height = 24, font = Font.IBMCGA_12X12):
 		self.grid_width = width
 		self.grid_height = height
 		self.default_fg = Color.WHITE
@@ -56,8 +58,8 @@ class Screen():
 		return self.glyph_dictionary[key]
 		
 	def load_font(self, font):
-		self.glyph_width = font['width']
-		self.glyph_height = font['height']
+		self.glyph_width = font.value['width']
+		self.glyph_height = font.value['height']
 		self.glyph_dictionary = dict()
 
 		self.screen_width = self.glyph_width * self.grid_width;
@@ -67,7 +69,7 @@ class Screen():
 		self.screen = pygame.display.set_mode(size)
 		self.clear()
 
-		glyph_image = pygame.image.load(font['file']).convert()
+		glyph_image = pygame.image.load(os.path.join(os.path.dirname(sys.modules['RogueLib.display'].__file__), font.value['file'])).convert()
 		glyph_matrix = pygame.PixelArray(glyph_image)
 
 		self.glyph_array = []
