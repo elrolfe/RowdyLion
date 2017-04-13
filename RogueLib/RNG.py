@@ -1,114 +1,108 @@
 from time import time
 from math import sqrt, log
 
-_seed = []
+class RNG:
+	seed = []
 
-_n = 0
-_k0 = 0
-_k1 = 0
-_k2 = 0
-_k3 = 0
-_s = []
+	n = 0
+	k0 = 0
+	k1 = 0
+	k2 = 0
+	k3 = 0
+	s = []
 
-def _mash(data):
-	global _n
+	def __init__(self):
+		self.set_seed()
 
-	data_str = str(data)
+	def mash(self, data):
+		data_str = str(data)
 
-	for i in range(len(data_str)):
-		_n += ord(data_str[i])
-		h = 0.02519603282416938 * _n
-		_n = int(h)
-		h -= _n
-		h *= _n
-		_n = int(h)
-		h -= _n
-		_n += h * 0x100000000
+		for i in range(len(data_str)):
+			self.n += ord(data_str[i])
+			h = 0.02519603282416938 * self.n
+			self.n = int(h)
+			h -= self.n
+			h *= self.n
+			self.n = int(h)
+			h -= self.n
+			self.n += h * 0x100000000
 
-	return int(_n) * 2.3283064365386963e-10;
+		return int(self.n) * 2.3283064365386963e-10;
 
-def get_seed():
-	global _seed
-	return _seed
+	def get_seed(self):
+		return self.seed
 
-def normal(mean = 0, std = 1):
-	r = 0
+	def normal(self, mean = 0, std = 1):
+		r = 0
 
-	while r > 1 or r == 0:
-		u = 2 * random() - 1;
-		v = 2 * random() - 1;
-		r = u * u + v * v
+		while r > 1 or r == 0:
+			u = 2 * random() - 1;
+			v = 2 * random() - 1;
+			r = u * u + v * v
 
-	gauss = u * sqrt(-2 * log(r) / r)
-	return mean + gauss * std
+		gauss = u * sqrt(-2 * log(r) / r)
+		return mean + gauss * std
 
-def normal_range(min, max):
-	mean = (min + max) / 2.0
-	sigma = (max - mean) / 3.0
-	num = min - 1
+	def normal_range(self, min, max):
+		mean = (min + max) / 2.0
+		sigma = (max - mean) / 3.0
+		num = min - 1
 
-	while num < min or num > max:
-		num = int(normal(mean, sigma))
+		while num < min or num > max:
+			num = int(normal(mean, sigma))
 
-	return num
+		return num
 
-def random():
-	global _k0, _k1, _k2, _k3, _s
-	_k0 = (_k0 + 1) & 255
-	_k1 = (_k1 + 1) & 255
-	_k2 = (_k2 + 1) & 255
-	_k3 = (_k3 + 1) & 255
+	def random(self):
+		self.k0 = (self.k0 + 1) & 255
+		self.k1 = (self.k1 + 1) & 255
+		self.k2 = (self.k2 + 1) & 255
+		self.k3 = (self.k3 + 1) & 255
 
-	x = _s[_k0] - _s[_k1]
-	if x < 0:
-		x += 1
+		x = self.s[self.k0] - self.s[self.k1]
+		if x < 0:
+			x += 1
 
-	x -= _s[_k2]
-	if x < 0:
-		x += 1
+		x -= self.s[self.k2]
+		if x < 0:
+			x += 1
 
-	x -= _s[_k3]
-	if x < 0:
-		x += 1
+		x -= self.s[self.k3]
+		if x < 0:
+			x += 1
 
-	_s[_k0] = x
-	return x
+		self.s[self.k0] = x
+		return x
 
-def random_range(min, max):
-	return int(random() * (max - min + 1)) + min
+	def random_range(self, min, max):
+		return int(random() * (max - min + 1)) + min
 
-def set_seed(*arguments):
-	global _s, _n, _k0, _k1, _k2, _k3, _seed
-	_s = []
-	_n = 0xefc8249d
-	_k0 = 0
-	_k1 = 58
-	_k2 = 119
-	_k3 = 178
+	def set_seed(self, *arguments):
+		self.s = []
+		self.n = 0xefc8249d
+		self.k0 = 0
+		self.k1 = 58
+		self.k2 = 119
+		self.k3 = 178
 
-	if len(arguments) == 0:
-		args = [time()]
-	else:
-		args = arguments
+		if len(arguments) == 0:
+			args = [time()]
+		else:
+			args = arguments
 
-	_seed = []
-
-	for j in range(256):
-		_s.append(_mash(" "))
-		_s[j] -= _mash(" ") * 4.76837158203125e-7
-		if _s[j] < 0:
-			_s[j] += 1
-
-	for i in range(len(args)):
-		_seed.append(args[i])
+		self.seed = []
 
 		for j in range(256):
-			_s[j] -= _mash(args[i])
-			_s[j] -= _mash(args[i]) * 4.76837158203125e-7
-			if _s[j] < 0:
-				_s[j] += 1
+			self.s.append(self.mash(" "))
+			self.s[j] -= self.mash(" ") * 4.76837158203125e-7
+			if self.s[j] < 0:
+				self.s[j] += 1
 
+		for i in range(len(args)):
+			self.seed.append(args[i])
 
-# Setup Code
-
-set_seed();
+			for j in range(256):
+				self.s[j] -= self.mash(args[i])
+				self.s[j] -= self.mash(args[i]) * 4.76837158203125e-7
+				if self.s[j] < 0:
+					self.s[j] += 1
