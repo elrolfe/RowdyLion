@@ -36,8 +36,8 @@ class RNG:
 		r = 0
 
 		while r > 1 or r == 0:
-			u = 2 * random() - 1;
-			v = 2 * random() - 1;
+			u = 2 * self.random() - 1;
+			v = 2 * self.random() - 1;
 			r = u * u + v * v
 
 		gauss = u * sqrt(-2 * log(r) / r)
@@ -49,7 +49,7 @@ class RNG:
 		num = min - 1
 
 		while num < min or num > max:
-			num = int(normal(mean, sigma))
+			num = int(self.normal(mean, sigma))
 
 		return num
 
@@ -75,7 +75,7 @@ class RNG:
 		return x
 
 	def random_range(self, min, max):
-		return int(random() * (max - min + 1)) + min
+		return int(self.random() * (max - min + 1)) + min
 
 	def set_seed(self, *arguments):
 		self.s = []
