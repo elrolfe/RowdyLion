@@ -26,13 +26,28 @@ class Screen():
 		if color == 0:
 			color = self.default_bg
 			
+		dx = x * self.glyph_width
+		dy = y * self.glyph_height
+
 		if width == -1:
-			width = self.screen_width - x;
+			dwidth = (self.grid_width - x) * self.glyph_width
+		else:
+			dwidth = width * self.glyph_width
 
 		if height == -1:
-			height = self.screen_height - y;
+			dheight = (self.grid_height - y) * self.glyph_height
+		else:
+			dheight = height * self.glyph_height
 
-		self.screen.fill(color.value, pygame.Rect(x, y, width, height))
+		self.screen.fill(color.value, pygame.Rect(dx, dy, dwidth, dheight))
+
+	def color_string_length(self, text):
+		length = len(text)
+
+		for m in self.color_regex.finditer(text):
+			length -= m.end() - m.start()
+
+		return length
 
 	def get_glyph(self, glyph):
 		index = ord(glyph[0])
@@ -42,18 +57,19 @@ class Screen():
 		key = str(fg) + glyph[0] + str(bg)
 
 		if not key in self.glyph_dictionary:
-			glyph_img = self.glyph_array[index]
+			glyph_img = self.glyph_array[index].make_surface()
+			glyph_img_arr = pygame.PixelArray(glyph_img)
 			if fg != Color.WHITE or bg != Color.BLACK:
 				if fg == Color.BLACK:
 					tempColor = Color.MAGENTA if bg != Color.MAGENTA else Color.CYAN
-					glyph_img.replace(Color.WHITE.value, tempColor.value)
-					glyph_img.replace(Color.BLACK.value, bg.value)
-					glyph_img.replace(tempColor.value, fg.value)
+					glyph_img_arr.replace(Color.WHITE.value, tempColor.value)
+					glyph_img_arr.replace(Color.BLACK.value, bg.value)
+					glyph_img_arr.replace(tempColor.value, fg.value)
 				else:
-					glyph_img.replace(Color.WHITE.value, fg.value)
-					glyph_img.replace(Color.BLACK.value, bg.value)
+					glyph_img_arr.replace(Color.WHITE.value, fg.value)
+					glyph_img_arr.replace(Color.BLACK.value, bg.value)
 
-			self.glyph_dictionary[key] = glyph_img.make_surface()
+			self.glyph_dictionary[key] = glyph_img
 
 		return self.glyph_dictionary[key]
 		
@@ -90,7 +106,6 @@ class Screen():
 		for m in self.color_regex.finditer(text):
 			text_stub = text[text_index:m.start()]
 			stubs.append({'text': text_stub, 'fg': current_fg, 'bg': current_bg})
-
 			if m.group(1) == 'b':
 				if len(m.group(2)) == 0:
 					current_bg = self.default_bg
@@ -100,7 +115,7 @@ class Screen():
 				if len(m.group(2)) == 0:
 					current_fg = self.default_fg
 				else:
-					current_bg = Color[m.group(2)]
+					current_fg = Color[m.group(2)]
 
 			text_index = m.end()
 
@@ -109,7 +124,6 @@ class Screen():
 
 		return stubs
 
-
 	def put_char(self, glyph, x, y):
 		self.check_bounds(x, y)
 
@@ -117,6 +131,31 @@ class Screen():
 		gy = y * self.glyph_height;
 
 		self.screen.blit(self.get_glyph(glyph), [gx, gy])
+
+	def put_rectangle(self, x, y, width, height, fg = -1, bg = -1, walls = ['*', '*', '*', '*'], corners = ['*', '*', '*', '*'], fill = ' '):
+		if fg == -1:
+			fg = self.default_fg
+
+		if bg == -1:
+			bg = self.default_bg
+
+		self.put_char((corners[0], fg, bg), x, y)
+		self.put_char((corners[1], fg, bg), x + width - 1, y)
+		self.put_char((corners[2], fg, bg), x + width - 1, y + height - 1)
+		self.put_char((corners[3], fg, bg), x, y + height - 1)
+
+		for i in range(1, width - 1):
+			self.put_char((walls[0], fg, bg), x + i, y)
+			self.put_char((walls[2], fg, bg), x + i, y + height - 1)
+
+		for i in range(1, height - 1):
+			self.put_char((walls[3], fg, bg), x, y + i)
+			self.put_char((walls[1], fg, bg), x + width - 1, y + i)
+
+		if fill != '':
+			for i in range(1, width - 1):
+				for j in range(1, height - 1):
+					self.put_char((fill, fg, bg), x + i, y + j)
 
 	def put_text(self, text, x = 0, y = 0, width = -1, height = -1):
 		dx = 0
@@ -137,7 +176,7 @@ class Screen():
 			data = text_data[i]
 			words = data['text'].split(' ')
 			for j in range(len(words)):
-				if (dx + len(words[j]) + 0 if j == 0 else 1) > width:
+				if (dx + len(words[j]) + (0 if j == 0 else 1)) > width:
 					dx = 0
 					dy += 1
 					if dy == height:
@@ -151,6 +190,24 @@ class Screen():
 					for k in range(len(words[j])):
 						self.put_char((words[j][k], data['fg'], data['bg']), dx + x, dy + y)
 						dx += 1
+
+	def put_text_centered(self, text, y, x = 0, width = -1):
+		if width == -1:
+			width = self.grid_width - x
+
+		length = self.color_string_length(text)
+		dx = (width - length) // 2
+
+		if dx < 0:
+			dx = 0;
+
+		self.put_text(text, dx + x, y, length, 1)
+
+	def set_default_bg(self, bg):
+		self.default_bg = bg
+
+	def set_default_fg(self, fg):
+		self.default_fg = fg
 
 	def update(self):
 		pygame.display.flip()
